@@ -1072,27 +1072,7 @@ shaders = GuiLibrary["ObjectsThatCanBeSaved"]["RenderWindow"]["Api"].CreateOptio
 	["HoverText"] = "Makes the game look so much nicer",
 })
 
-shadowst = shaders.CreateToggle({
-	["Name"] = "Shadows",
-	["Function"] = function(callback)
-		if shaders["Enabled"] then
-			lighting.GlobalShadows = callback
-		end
-		shadows["Enabled"] = callback
-	end,
-	["HoverText"] = "Enable shadows",
-})
 
-softshadowst = shaders.CreateToggle({
-	["Name"] = "SoftShadows",
-	["Function"] = function(callback) 
-		if shaders["Enabled"] then
-			lighting.ShadowSoftness = callback and 1 or 0
-		end
-		softshadows["Enabled"] = callback
-	end,
-	["HoverText"] = "Softer Shadows",
-})
 if hiddenprop() then
 	technologyt = shaders.CreateDropdown({
 		["Name"] = "Tech",
