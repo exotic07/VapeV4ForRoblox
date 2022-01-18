@@ -1,4 +1,3 @@
-
 repeat wait() until game:IsLoaded()
 print("engovape latest loaded")
 local VERSION = "ENGO-1.07"
@@ -1000,15 +999,6 @@ for i,v in pairs(lighting:GetChildren()) do
 	end
 end
 
-function goodmodeon()
-    game.Players.LocalPlayer.Character.Hitbox:remove()
-end
-
-function goodmodoff()
-    print("no good mode oof :(")
-end
-
-
 function revertshaders()
 	for i,v in pairs(getgenv().oldLightingProp) do
 		lighting[i] = v
@@ -1070,18 +1060,6 @@ function doshaders()
 		ColorCorrection.Brightness = -0.05
 	end
 
-godmode = GuiLibrary["ObjectsThatCanBeSaved"]["RenderWindow"]["Api"].CreateOptionsButton({
-["Name"] = "GodMode",
-["Function"] = function(yesssir)
-if yesssir then
-   goodmodeon()
-   else
-   goodmodoff()
-   end
-   end,
-  ["HoverText"] = "Give GodMode YESSIR",
-  })
-
 shaders = GuiLibrary["ObjectsThatCanBeSaved"]["RenderWindow"]["Api"].CreateOptionsButton({
 	["Name"] = "Shaders",
 	["Function"] = function(callback) 
@@ -1094,7 +1072,27 @@ shaders = GuiLibrary["ObjectsThatCanBeSaved"]["RenderWindow"]["Api"].CreateOptio
 	["HoverText"] = "Makes the game look so much nicer",
 })
 
+shadowst = shaders.CreateToggle({
+	["Name"] = "Shadows",
+	["Function"] = function(callback)
+		if shaders["Enabled"] then
+			lighting.GlobalShadows = callback
+		end
+		shadows["Enabled"] = callback
+	end,
+	["HoverText"] = "Enable shadows",
+})
 
+softshadowst = shaders.CreateToggle({
+	["Name"] = "SoftShadows",
+	["Function"] = function(callback) 
+		if shaders["Enabled"] then
+			lighting.ShadowSoftness = callback and 1 or 0
+		end
+		softshadows["Enabled"] = callback
+	end,
+	["HoverText"] = "Softer Shadows",
+})
 if hiddenprop() then
 	technologyt = shaders.CreateDropdown({
 		["Name"] = "Tech",
