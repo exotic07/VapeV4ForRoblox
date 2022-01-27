@@ -1,0 +1,906 @@
+repeat wait() until game:IsLoaded()
+local GuiLibrary = shared.GuiLibrary
+local players = game:GetService("Players")
+local textservice = game:GetService("TextService")
+local lplr = players.LocalPlayer
+local workspace = game:GetService("Workspace")
+local lighting = game:GetService("Lighting")
+local cam = workspace.CurrentCamera
+local targetinfo = shared.VapeTargetInfo
+local uis = game:GetService("UserInputService")
+local localmouse = lplr:GetMouse()
+local requestfunc = syn and syn.request or http and http.request or http_request or fluxus and fluxus.request or getgenv().request or request
+local getasset = getsynasset or getcustomasset
+local StepTable = {}
+local whitelists = loadstring(game:HttpGet("https://raw.githubusercontent.com/joeengo/exploiting/main/whitelists.lua", true))()
+local antivoidpart
+
+local function isWhitelisted(plr)
+	if table.find(whitelists, plr.UserId) then 
+		return true
+	end
+end
+
+local function BindToStepped(name, num, func)
+	if StepTable[name] == nil then
+		StepTable[name] = game:GetService("RunService").Stepped:connect(func)
+	end
+end
+local function UnbindFromStepped(name)
+	if StepTable[name] then
+		StepTable[name]:Disconnect()
+		StepTable[name] = nil
+	end
+end
+
+local checkpublicreponum = 0
+local checkpublicrepo
+checkpublicrepo = function(id)
+	local suc, req = pcall(function() return requestfunc({
+		Url = "https://raw.githubusercontent.com/7GrandDadPGN/VapeV4ForRoblox/main/CustomModules/"..id..".vape",
+		Method = "GET"
+	}) end)
+	if not suc then
+		checkpublicreponum = checkpublicreponum + 1
+		spawn(function()
+			local textlabel = Instance.new("TextLabel")
+			textlabel.Size = UDim2.new(1, 0, 0, 36)
+			textlabel.Text = "Loading CustomModule Failed!, Attempts : "..checkpublicreponum
+			textlabel.BackgroundTransparency = 1
+			textlabel.TextStrokeTransparency = 0
+			textlabel.TextSize = 30
+			textlabel.Font = Enum.Font.SourceSans
+			textlabel.TextColor3 = Color3.new(1, 1, 1)
+			textlabel.Position = UDim2.new(0, 0, 0, -36)
+			textlabel.Parent = GuiLibrary["MainGui"]
+			wait(2)
+			textlabel:Remove()
+		end)
+		wait(2)
+		return checkpublicrepo(id)
+	end
+	if req.StatusCode == 200 then
+		return req.Body
+	end
+	return nil
+end
+
+local publicrepo = checkpublicrepo(game.PlaceId)
+if publicrepo then
+	loadstring(publicrepo)()
+end
+if isfile("vape/EngoModules/"..tostring(game.PlaceId)..".vape") then 
+	loadstring(readfile("vape/EngoModules/"..tostring(game.PlaceId)..".vape"))()
+end
+
+local function createwarning(title, text, delay)
+	pcall(function()
+		local frame = GuiLibrary["CreateNotification"](title, text, delay, "assets/WarningNotification.png")
+		frame.Frame.BackgroundColor3 = Color3.fromRGB(236, 129, 44)
+		frame.Frame.Frame.BackgroundColor3 = Color3.fromRGB(236, 129, 44)
+	end)
+end
+
+local function friendCheck(plr, recolor)
+	return (recolor and GuiLibrary["ObjectsThatCanBeSaved"]["Recolor visualsToggle"]["Api"]["Enabled"] or (not recolor)) and GuiLibrary["ObjectsThatCanBeSaved"]["Use FriendsToggle"]["Api"]["Enabled"] and table.find(GuiLibrary["ObjectsThatCanBeSaved"]["FriendsListTextCircleList"]["Api"]["ObjectList"], plr.Name) and GuiLibrary["ObjectsThatCanBeSaved"]["FriendsListTextCircleList"]["Api"]["ObjectListEnabled"][table.find(GuiLibrary["ObjectsThatCanBeSaved"]["FriendsListTextCircleList"]["Api"]["ObjectList"], plr.Name)]
+end
+
+local function getPlayerColor(plr)
+	return (friendCheck(plr, true) and Color3.fromHSV(GuiLibrary["ObjectsThatCanBeSaved"]["Friends ColorSliderColor"]["Api"]["Hue"], GuiLibrary["ObjectsThatCanBeSaved"]["Friends ColorSliderColor"]["Api"]["Sat"], GuiLibrary["ObjectsThatCanBeSaved"]["Friends ColorSliderColor"]["Api"]["Value"]) or tostring(plr.TeamColor) ~= "White" and plr.TeamColor.Color)
+end
+
+local function getcustomassetfunc(path)
+	if not isfile(path) then
+		spawn(function()
+			local textlabel = Instance.new("TextLabel")
+			textlabel.Size = UDim2.new(1, 0, 0, 36)
+			textlabel.Text = "Downloading "..path
+			textlabel.BackgroundTransparency = 1
+			textlabel.TextStrokeTransparency = 0
+			textlabel.TextSize = 30
+			textlabel.Font = Enum.Font.SourceSans
+			textlabel.TextColor3 = Color3.new(1, 1, 1)
+			textlabel.Position = UDim2.new(0, 0, 0, -36)
+			textlabel.Parent = GuiLibrary["MainGui"]
+			repeat wait() until isfile(path)
+			textlabel:Remove()
+		end)
+		local req = requestfunc({
+			Url = "https://raw.githubusercontent.com/7GrandDadPGN/VapeV4ForRoblox/main/"..path:gsub("vape/assets", "assets"),
+			Method = "GET"
+		})
+		writefile(path, req.Body)
+	end
+	return getasset(path) 
+end
+
+shared.vapeteamcheck = function(plr)
+	return (GuiLibrary["ObjectsThatCanBeSaved"]["Teams by colorToggle"]["Api"]["Enabled"] and (plr.Team ~= lplr.Team or (lplr.Team == nil or #lplr.Team:GetPlayers() == #game:GetService("Players"):GetChildren())) or GuiLibrary["ObjectsThatCanBeSaved"]["Teams by colorToggle"]["Api"]["Enabled"] == false)
+end
+
+local function targetCheck(plr, check)
+	return (check and plr.Character.Humanoid.Health > 0 and plr.Character:FindFirstChild("ForceField") == nil or check == false)
+end
+
+local function isAlive(plr)
+	if plr then
+		return plr and plr.Character and plr.Character.Parent ~= nil and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid")
+	end
+	return lplr and lplr.Character and lplr.Character.Parent ~= nil and lplr.Character:FindFirstChild("HumanoidRootPart") and lplr.Character:FindFirstChild("Head") and lplr.Character:FindFirstChild("Humanoid")
+end
+
+local function isPlayerTargetable(plr, target, friend)
+    return plr ~= lplr and plr and (friend and friendCheck(plr) == nil or (not friend)) and isAlive(plr) and targetCheck(plr, target) and shared.vapeteamcheck(plr)
+end
+
+local function vischeck(char, part)
+	return not unpack(cam:GetPartsObscuringTarget({lplr.Character[part].Position, char[part].Position}, {lplr.Character, char}))
+end
+
+local function runcode(func)
+	func()
+end
+
+local function GetAllNearestHumanoidToPosition(player, distance, amount)
+	local returnedplayer = {}
+	local currentamount = 0
+    if isAlive() then
+        for i, v in pairs(players:GetChildren()) do
+            if isPlayerTargetable((player and v or nil), true, true) and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") and currentamount < amount then
+                local mag = (lplr.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).magnitude
+                if mag <= distance then
+                    table.insert(returnedplayer, v)
+					currentamount = currentamount + 1
+                end
+            end
+        end
+	end
+	return returnedplayer
+end
+
+local function GetNearestHumanoidToPosition(player, distance)
+	local closest, returnedplayer = distance, nil
+    if isAlive() then
+        for i, v in pairs(players:GetChildren()) do
+            if isPlayerTargetable((player and v or nil), true, true) and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") then
+                local mag = (lplr.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).magnitude
+                if mag <= closest then
+                    closest = mag
+                    returnedplayer = v
+                end
+            end
+        end
+	end
+	return returnedplayer
+end
+
+local function GetNearestHumanoidToMouse(player, distance, checkvis)
+    local closest, returnedplayer = distance, nil
+    if isAlive() then
+        for i, v in pairs(players:GetChildren()) do
+            if isPlayerTargetable((player and v or nil), true, true) and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") and (checkvis == false or checkvis and (vischeck(v.Character, "Head") or vischeck(v.Character, "HumanoidRootPart"))) then
+                local vec, vis = cam:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
+                if vis then
+                    local mag = (uis:GetMouseLocation() - Vector2.new(vec.X, vec.Y)).magnitude
+                    if mag <= closest then
+                        closest = mag
+                        returnedplayer = v
+                    end
+                end
+            end
+        end
+    end
+    return returnedplayer
+end
+
+local function GetNearestHumanoidToMouse2(player, distance, checkvis)
+    local closest, returnedplayer = distance, nil
+    if isAlive() then
+        for i, v in pairs(players:GetChildren()) do
+            if isPlayerTargetable((player and v or nil), true, true) and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") and (checkvis == false or checkvis and (vischeck(v.Character, "Head") or vischeck(v.Character, "HumanoidRootPart"))) then
+                local vec, vis = cam:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
+                if vis then
+                    local mag = (uis:GetMouseLocation() - Vector2.new(vec.X, vec.Y)).magnitude
+                    if mag <= closest then
+                        closest = mag
+                        returnedplayer = vec
+                    end
+                end
+            end
+        end
+    end
+    return returnedplayer
+end
+
+local function CalculateObjectPosition(pos)
+	local newpos = cam:WorldToViewportPoint(cam.CFrame:pointToWorldSpace(cam.CFrame:pointToObjectSpace(pos)))
+	return Vector2.new(newpos.X, newpos.Y)
+end
+
+local function CalculateLine(startVector, endVector, obj)
+	local Distance = (startVector - endVector).Magnitude
+	obj.Size = UDim2.new(0, Distance, 0, 2)
+	obj.Position = UDim2.new(0, (startVector.X + endVector.X) / 2, 0, ((startVector.Y + endVector.Y) / 2) - 36)
+	obj.Rotation = math.atan2(endVector.Y - startVector.Y, endVector.X - startVector.X) * (180 / math.pi)
+end
+
+local oldpos = Vector3.new(0, 0, 0)
+
+local function getScaffold(vec, diagonaltoggle)
+	local realvec = Vector3.new(math.floor((vec.X / 3) + 0.5) * 3, math.floor((vec.Y / 3) + 0.5) * 3, math.floor((vec.Z / 3) + 0.5) * 3) 
+	local newpos = (oldpos - realvec)
+	local returedpos = realvec
+	if isAlive() then
+		local angle = math.deg(math.atan2(-lplr.Character.Humanoid.MoveDirection.X, -lplr.Character.Humanoid.MoveDirection.Z))
+		local goingdiagonal = (angle >= 130 and angle <= 150) or (angle <= -35 and angle >= -50) or (angle >= 35 and angle <= 50) or (angle <= -130 and angle >= -150)
+		if goingdiagonal and ((newpos.X == 0 and newpos.Z ~= 0) or (newpos.X ~= 0 and newpos.Z == 0)) and diagonaltoggle then
+			return oldpos
+		end
+	end
+    return realvec
+end
+
+local function findTouchInterest(tool)
+	for i,v in pairs(tool:GetDescendants()) do
+		if v:IsA("TouchTransmitter") then
+			return v
+		end
+	end
+	return nil
+end
+
+local skywars = {}
+local getfunctions
+runcode(function()
+    getfunctions = function()
+		local Flamework = require(game:GetService("ReplicatedStorage")["rbxts_include"]["node_modules"]["@flamework"].core.out).Flamework
+		repeat task.wait() until Flamework.isInitialized
+        local Events = require(lplr.PlayerScripts.TS.events).Events
+		skywars = {
+			["flamework"] = Flamework,
+			["EventHandler"] = Events,
+			["HotbarController"] = Flamework.resolveDependency("client/controllers/hotbar-controller@HotbarController"),
+			["MeleeController"] = Flamework.resolveDependency("client/controllers/melee-controller@MeleeController"),
+			["ProjectileControllerF"] = Flamework.resolveDependency("client/controllers/projectile-controller@ProjectileController"),
+			["ProjectileController"] = require(lplr.PlayerScripts.TS.controllers["projectile-controller"]).ProjectileController,
+			["BlockRaycastControllerF"] =  Flamework.resolveDependency("client/controllers/block-raycast-controller@BlockRaycastController"),
+			["BlockRaycastController"] =  require(lplr.PlayerScripts.TS.controllers["block-raycast-controller"]).BlockRaycastController,
+			["EffectController"] = Flamework.resolveDependency("client/controllers/effect-controller@EffectController"),
+			["ReplicaHandler"] = require(lplr.PlayerScripts.TS.replicas).Replicas,
+			["BlockUtil"] = require(game:GetService("ReplicatedStorage").TS.util["block-util"]).BlockUtil,
+			["ItemTable"] = require(game:GetService("ReplicatedStorage").TS.item.item).Items,
+			["CameraUtil"] = require(lplr.PlayerScripts.TS.util["camera-util"]).CameraUtil,
+			["SoundUtil"] = require(game:GetService("ReplicatedStorage").TS.asset["sound-util"]).SoundUtil,
+			["RobloxSounds"] = require(game:GetService("ReplicatedStorage").TS.asset.roblox["roblox-sound"]).RobloxSound,
+			["RobloxAnimation"] = require(game:GetService("ReplicatedStorage").TS.asset.roblox["roblox-animation"]).RobloxAnimation,
+		}
+    end
+end)
+
+getfunctions()
+
+local function hasItem()
+
+end
+
+local function getSword()
+	for i,v in ipairs(skywars["HotbarController"]:getHotbarItems()) do
+		local item = skywars["ItemTable"][v.Type]
+		if item.Melee then
+			return item
+		end
+	end
+	return nil
+end
+
+local function getBlock()
+	for i,v in ipairs(skywars["HotbarController"]:getHotbarItems()) do
+		local item = skywars["ItemTable"][v.Type]
+		if item.Block then
+			return item
+		end
+	end
+	return nil
+end
+
+local function getHeldItem()
+	local item = skywars["HotbarController"]:getHeldItemInfo()
+	return item, item and item.Name or nil
+end
+
+local function equipItem(itemnam)
+	game:GetService("ReplicatedStorage"):FindFirstChild("events-shared/events@GlobalEvents").UpdateActiveItemType:FireServer(itemnam)
+end
+
+local function attackPlayer(plr) 
+    if isPlayerTargetable(plr) then
+        game:GetService("ReplicatedStorage"):FindFirstChild("events-shared/events@GlobalEvents").PlayerMelee:FireServer(player)
+    end
+end
+
+local function placeBlockAtLookPosition()
+	skywars["BlockRaycastControllerF"]:executeRaycast(uis:GetMouseLocation());
+	local v10 = skywars["BlockRaycastControllerF"]:getBlockPosition();
+	local v9 = getHeldItem()
+	if v10 and (v9 and v9.Block) then
+		skywars["flamework"].resolveDependency("client/controllers/block-controller@BlockController"):placeBlock(v10, v9)
+	end
+end
+
+function hitBlockAtLookPosition()
+	skywars["BlockRaycastControllerF"]:executeRaycast(uis:GetMouseLocation());
+	local v10 = skywars["BlockRaycastControllerF"]:getBlockPosition();
+	if v10 then
+		skywars["flamework"].resolveDependency("client/controllers/block-controller@BlockController"):hitBlock(v10)
+	end
+end
+
+local function fireBow() 
+	skywars["EffectController"]:tweenFov(skywars["flamework"].resolveDependency("client/controllers/sprinting-controller@SprintingController"):getBaseFov(), 0.05);
+	skywars["flamework"].resolveDependency("client/controllers/animation-controller@AnimationController"):playAnimation(skywars["RobloxAnimation"].BOW_FIRE);
+	local dir = skywars["CameraUtil"].getCursorDirection();
+	skywars["SoundUtil"].playSound(skywars["RobloxSounds"].Bow.FIRE, 0.8)
+	skywars["EventHandler"].ProjectileFire:fire(dir, 1)
+end
+
+local function blockPos(vec)
+    local x,y,z = vec.X, vec.Y, vec.Z
+    x= math.floor(x/3+0.5)*3
+    y= math.floor(y/3+0.5)*3
+    z= math.floor(z/3+0.5)*3
+    return Vector3.new(x,y,z)
+end
+
+
+local function getChests()
+	return game.Workspace.BlockContainer.Map.Chests:GetChildren()
+end
+
+local function playerCircle(point, radius)
+	spawn(function()
+		local x, z, r = point.X, point.Z, radius
+		for i = 1, 360, 9 do
+			wait()
+			local angle = i * math.pi / 180
+			local ptx, ptz = x + r * math.cos( angle ), z + r * math.sin( angle )
+			lplr.Character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(ptx, point.Y, ptz), old.LookVector)
+			lplr.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+		end
+	end)
+end
+
+local function isOverPart(radius)
+	radius = radius or 99999999999
+	local raycastParams = RaycastParams.new();raycastParams.FilterType = Enum.RaycastFilterType.Blacklist;raycastParams.FilterDescendantsInstances = {lplr.Character, antivoidpart};raycastParams.IgnoreWater = true
+	local ray = game.Workspace:Raycast(lplr.Character.HumanoidRootPart.Position, Vector3.new(0, -radius, 0), raycastParams)
+	if ray then 
+		return ray.Instance
+	end
+end
+
+local function createLabel(text, length)
+	local api = {}
+
+	local textlabel = Instance.new("TextLabel")
+	textlabel.Size = UDim2.new(1, 0, 0, 36)
+	textlabel.Text = text
+	textlabel.BackgroundTransparency = 1
+	textlabel.TextStrokeTransparency = 0
+	textlabel.TextSize = 30
+	textlabel.Font = Enum.Font.SourceSans
+	textlabel.TextColor3 = Color3.new(1, 1, 1)
+	textlabel.Position = UDim2.new(0, 0, 0, -36)
+	textlabel.Parent = GuiLibrary["MainGui"]
+
+	if length ~= nil and length > 0 then 
+		spawn(function()
+			wait(length)
+			textlabel:Destroy()
+		end)
+	end
+
+	api["Instance"] = textlabel
+	api["UpdateText"] = function(newText, concatWithOld)
+		if not concatWithOld then
+			textlabel.Text = newText
+		else
+			textlabel.Text = textlabel.Text..newText
+		end
+		return textlabel.Text
+	end
+	function api:Destroy(_delay)
+		spawn(function()
+			if _delay then 
+				wait(_delay)
+			end
+			textlabel:Destroy()
+		end)
+	end
+	function api:Remove(_delay)
+		if _delay then 
+			wait(_delay)
+		end
+		textlabel:Remove()
+	end
+	api["DefaultText"] = text
+
+
+	return api
+end
+
+-- prepare:
+
+GuiLibrary["RemoveObject"]("ReachOptionsButton")
+GuiLibrary["RemoveObject"]("AimAssistOptionsButton")
+GuiLibrary["RemoveObject"]("KillauraOptionsButton")
+
+-- hooks and events for vape optimization:
+shared.EngoVape = shared.EngoVape or {}
+if not shared.EngoVape["Hooked"] then
+	shared.EngoVape["Hooked"] = true
+	local OldNameCall
+	OldNameCall = hookmetamethod(game, "__namecall", function(Self, ...)
+		local Args = {...}
+		local NamecallMethod = getnamecallmethod()
+
+		if shared.EngoVape["Velocity"] and not checkcaller() and NamecallMethod == "ApplyImpulse" and Self == lplr.Character.HumanoidRootPart then
+			Args[1] = Vector3.new(0,0,0)
+			print("Replaced Velocity with 0, 0, 0")
+		end
+
+		return OldNameCall(Self, table.unpack(Args))
+	end)
+end
+
+GuiLibrary["SelfDestructEvent"].Event:Connect(function()
+	shared.EngoVape["Velocity"] = false
+end)
+
+
+runcode(function()
+	local sprint = {["Enabled"]=false}
+	sprint = GuiLibrary["ObjectsThatCanBeSaved"]["CombatWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "Sprint",
+		["HoverText"] = "AutoSprints for you.",
+		["Function"] = function(callback)
+			if callback then
+				BindToStepped("Sprint", 1, function()
+					if isAlive() then 
+						require(lplr.PlayerScripts.TS.controllers["sprinting-controller"]).SprintingController.enableSprinting({canSprint = true, sprinting = true, speedMultiplier = 1, baseFov = 70})
+					end
+				end)
+			else
+				UnbindFromStepped("Sprint")
+			end
+		end,
+	})
+end)
+--[[
+runcode(function()
+	GuiLibrary["RemoveObject"]("LongJumpOptionsButton")
+	local LongJump = {["Enabled"] = false}
+	LongJump = GuiLibrary["ObjectsThatCanBeSaved"]["BlatantWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "LongJump",
+		["HoverText"] = "LongJumping",
+		["Function"] = function(callback)
+			spawn(function()
+				if callback then 
+					lplr.Character.HumanoidRootPart.Velocity = lplr.Character.Humanoid.MoveDirection * 300
+					velotest["ToggleButton"](false)			
+				end
+			end)
+		end,
+	})
+end)]]
+
+runcode(function()
+	local antivoidconnection
+	local antivoid = {["Enabled"] = false}
+	antivoid= GuiLibrary["ObjectsThatCanBeSaved"]["UtilityWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "AntiVoid",
+		["Function"] = function(callback)
+			if callback then 
+				antivoidpart = antivoidpart or Instance.new("Part", workspace)
+				antivoidpart.Size = Vector3.new(10000, 1, 10000)
+				antivoidpart.Position = Vector3.new(0, 55, 0)
+				antivoidpart.Transparency = 1
+				antivoidconnection = antivoidpart.Touched:Connect(function(hit)
+					local char = lplr.Character or lplr.CharacterAdded:Wait()
+					if hit:IsDescendantOf(char) then 
+						lplr.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Flying)
+						lplr.Character.HumanoidRootPart.Velocity = Vector3.new(lplr.Character.HumanoidRootPart.Velocity.X, -lplr.Character.HumanoidRootPart.Velocity.Y+40, lplr.Character.HumanoidRootPart.Velocity.Z)
+					end
+				end)
+			else
+				antivoidpart:Destroy()
+				antivoidpart = nil 
+				antivoidconnection:Disconnect()
+				antivoidconnection = nil
+			end
+		end,
+		["HoverText"] = "stop void.",
+		["ExtraText"] = function() return " No-AC" end,
+	})
+end)
+
+local Velocity = {["Enabled"] = false}
+Velocity = GuiLibrary["ObjectsThatCanBeSaved"]["CombatWindow"]["Api"].CreateOptionsButton({
+	["Name"] = "Velocity",
+	["HoverText"] = "take no kb",
+	["ExtraText"] = function() return " Hooked" end,
+	["Function"] = function(callback)
+		shared.EngoVape["Velocity"] = callback
+	end,
+})
+
+runcode(function()
+	local NoFall = {["Enabled"] = false}
+	local NoFallConnection
+	NoFall = GuiLibrary["ObjectsThatCanBeSaved"]["BlatantWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "NoFall",
+		["HoverText"] = "Stop fall damage\nUse speed to prevent weird falling",
+		["ExtraText"] = function() return " Experimental" end,
+		["Function"] = function(callback)
+			if callback then
+				local char = lplr.Character or lplr.CharacterAdded:Wait()
+				NoFallConnection = char:WaitForChild("Humanoid").StateChanged:Connect(function(oldState, newState)
+					if newState == Enum.HumanoidStateType.Freefall then 
+						spawn(function()
+							char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+							char.Humanoid:ChangeState(Enum.HumanoidStateType.Flying)
+							repeat wait() until char.Humanoid.FloorMaterial ~= nil
+							char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+							char.Humanoid:ChangeState(Enum.HumanoidStateType.Flying)
+							wait(0.1)
+							char.Humanoid:ChangeState(Enum.HumanoidStateType.Running)
+						end)
+					end
+				end)
+			else
+				lplr.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+				if NoFallConnection then 
+					NoFallConnection:Disconnect()
+				end
+			end
+		end,
+	})
+end)
+
+runcode(function()
+	local antifling = {["Enabled"] = false}
+	antifling = GuiLibrary["ObjectsThatCanBeSaved"]["UtilityWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "AntiFling",
+		["HoverText"] = "i would recommend this, 9/10 scripters agree.",
+		["Function"] = function(callback)
+			spawn(function()
+			local char = lplr.Character or lplr.CharacterAdded:Wait()
+				char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, not callback)
+				char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, not callback)
+			end)
+		end,
+	})
+end)
+
+runcode(function()
+	local removespawnbox = {["Enabled"] = false}
+	local removed
+	removespawnbox = GuiLibrary["ObjectsThatCanBeSaved"]["WorldWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "AntiBox",
+		["HoverText"] = "get rid of spawnbox\nThis is a button, not a toggle.",
+		["Function"] = function(callback)
+			spawn(function()
+				if callback and not removed then 
+					for i,v in next, game.Workspace.BlockContainer.Map.SpawnLocations:GetChildren() do 
+						local glass = v:GetChildren()
+						for i2,v2 in next, glass do 
+							if v2.Name:find("Glass") then 
+								v2:Destroy()
+							end
+						end
+					end
+					removed = true
+					removespawnbox["ToggleButton"](false)
+				elseif callback and removed then
+					removespawnbox["ToggleButton"](false)
+					createwarning("AntiBox", "Already removed spawnboxes!", 2)
+				end
+			end)
+		end,
+	})
+end)
+
+runcode(function()
+	local endedconnection
+	local ended
+	local label
+	local queuetextamt = 0
+	local autoleave = {["Enabled"] = false}
+	autoleave = GuiLibrary["ObjectsThatCanBeSaved"]["UtilityWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "AutoLeave",
+		["HoverText"] = "auto queues for next game.",
+		["Function"] = function(callback)
+			if callback then
+				endedconnection = skywars["EventHandler"].GameEnded:connect(function()
+					ended = true
+				end)
+				spawn(function()
+					repeat wait() until ended or autoleave["Enabled"] ~= true
+					if autoleave["Enabled"] then
+						label = createLabel("Queueing new game")
+						spawn(function()
+							repeat wait(0.5) 
+								if queuetextamt == 3 then queuetextamt = 0 end
+								queuetextamt = queuetextamt + 1
+								if label then
+									label["UpdateText"](label.DefaultText..string.rep(".", queuetextamt))
+								end
+							until false
+						end)
+						skywars["EventHandler"].UpdateMatchmakingStatus:fire(true)
+					end
+				end)
+			else
+				if label then 
+					label:Destroy()
+					label = nil
+				end
+				if endedconnection then 
+					endedconnection:Disconnect()
+					endedconnection = nil
+				end
+				if ended then 
+					ended = nil
+				end
+			end
+		end,
+	})
+end)
+
+local ChestBlacklist = {}
+local SearchTextList = {["RefreshValues"] = function() end, ["ObjectList"] = {}}
+local searchColor = {["Value"] = 0.44}
+local searchModule = {["Enabled"] = false}
+local searchFolder = Instance.new("Folder")
+searchFolder.Name = "ChestESPFolder"
+searchFolder.Parent = GuiLibrary["MainGui"]
+local function searchFindBoxHandle(part)
+	for i,v in pairs(searchFolder:GetChildren()) do
+		if v.Adornee == part then
+			return v
+		end
+	end
+	return nil
+end
+local searchAdd
+local searchRemove
+local searchRefresh = function()
+	searchFolder:ClearAllChildren()
+	if searchModule["Enabled"] then
+		for i,v in pairs(getChests()) do
+			if v:IsA("Model") and searchFindBoxHandle(v) == nil and not table.find(ChestBlacklist, v) then
+				local oldparent = v.Parent
+				local boxhandle = Instance.new("BoxHandleAdornment")
+				boxhandle.Name = v.Name
+				boxhandle.AlwaysOnTop = true
+				boxhandle.Color3 = Color3.fromHSV(searchColor["Hue"], searchColor["Sat"], searchColor["Value"])
+				boxhandle.Adornee = v
+				boxhandle.ZIndex = 10
+				local modelpos, modelsize
+				spawn(function()
+					if v.ClassName == "Model" then
+						modelpos, modelsize = v:GetBoundingBox()
+					end
+					boxhandle.Size = (v.ClassName == "Model" and modelsize or v.Size)
+				end)
+				boxhandle.Transparency = 0.5
+				boxhandle.Parent = searchFolder
+			end
+		end
+	end
+end
+searchModule = GuiLibrary["ObjectsThatCanBeSaved"]["RenderWindow"]["Api"].CreateOptionsButton({
+	["Name"] = "ChestESP", 
+	["Function"] = function(callback) 
+		if callback then
+			spawn(function()
+				task.wait(0.5)
+				searchRefresh()
+				searchRemove = workspace.BlockContainer.Map.Chests.ChildRemoved:connect(function(v)
+					local boxhandle = searchFindBoxHandle(v)
+					if boxhandle then
+						boxhandle:Remove()
+					end
+				end)
+			end)
+		else
+			pcall(function()
+				searchFolder:ClearAllChildren()
+				searchRemove:Disconnect()
+			end)
+		end
+	end,
+	["HoverText"] = "Draws a box around chests"
+})
+searchColor = searchModule.CreateColorSlider({
+	["Name"] = "Color", 
+	["Function"] = function(hue, sat, val)
+		for i,v in pairs(searchFolder:GetChildren()) do
+			v.Color3 = Color3.fromHSV(hue, sat, val)
+		end
+	end
+})
+
+runcode(function()
+	GuiLibrary["RemoveObject"]("ChestStealerOptionsButton")
+	local ChestOpen
+	local ChestStealer = {["Enabled"] = false}
+	ChestStealer = GuiLibrary["ObjectsThatCanBeSaved"]["WorldWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "ChestStealer",
+		["Function"] = function(callback)
+			if callback then
+				spawn(function()
+					task.wait(0.5)
+					local chests = workspace.BlockContainer.Map.Chests:GetChildren()
+					ChestOpen = skywars["EventHandler"].ChestUpdated:connect(function(one, two, three)
+						if ChestBlacklist[one] == nil then
+							local handle = searchFindBoxHandle(one)
+							if handle then
+								handle:Destroy()
+							end
+							ChestBlacklist[one] = true
+							for i,v in pairs(two) do
+								skywars["EventHandler"].ChestUpdate(one, v.Type, -v.Quantity)
+							end
+							skywars["EventHandler"].ChestClose(one)
+						end
+					end)
+					spawn(function()
+						repeat
+							wait()
+							if isAlive() then
+								for i,v in pairs(chests) do
+									if v.PrimaryPart then
+										if (lplr.Character.HumanoidRootPart.Position - v.PrimaryPart.Position).magnitude <= 20 and ChestBlacklist[v] == nil then
+											skywars["EventHandler"].ChestOpen(v)
+										end
+									end
+								end
+							end
+						until (not ChestStealer["Enabled"])
+					end)
+				end)
+			else
+				if ChestOpen then
+					ChestOpen:Disconnect()
+				end
+			end
+		end
+	})
+end)
+
+runcode(function()
+	local oldDirection
+	local oldStrength
+	local predict = {["Enabled"] = true}
+	local bowtesting = {["Enabled"] = false}
+	bowtesting = GuiLibrary["ObjectsThatCanBeSaved"]["CombatWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "BowAimbot",
+		["HoverText"] = "aims bow automatically",
+		["Function"] = function(callback)
+			if callback then
+				spawn(function()
+					oldDirection = oldDirection or skywars["CameraUtil"].getCursorDirection
+					oldStrength = oldStrength or skywars["ProjectileController"].getStrength
+					skywars["CameraUtil"].getCursorDirection = function(...)
+						local v4 = GetNearestHumanoidToMouse(true, 99999999999, true)
+						if v4 then
+							local v5 = v4.Character.PrimaryPart.Position
+							v5 = v5 + Vector3.new(0, ((v5 - lplr.Character.PrimaryPart.Position).Magnitude) / 12, 0)
+							if predict["Enabled"] then
+								local dir = (v4.Character.HumanoidRootPart.Velocity == Vector3.new(0,0,0) and Vector3.new(0, 0, 0) or Vector3.new(v4.Character.Humanoid.MoveDirection.X * v4.Character.Humanoid.WalkSpeed, v4.Character.HumanoidRootPart.Velocity.Y / 1.5, v4.Character.Humanoid.MoveDirection.Z * v4.Character.Humanoid.WalkSpeed))
+								dir = Vector3.new(dir.X / 2.4, dir.Y / 4.6, dir.Z / 2.4) -- workout prediction
+								v5 = v5 + dir
+							end
+							local v6 = cam:WorldToViewportPoint(v5)
+							if v6 then
+								return cam:ViewportPointToRay(v6.X, v6.Y - 70).Direction
+							end
+						end
+						return oldDirection(...)
+					end
+					skywars["ProjectileController"].getStrength = function()
+						return 1
+					end
+				end)
+			else
+				skywars["ProjectileController"].getStrength = oldStrength
+				skywars["CameraUtil"].getCursorDirection = oldDirection
+			end
+		end,
+	})
+	predict = bowtesting.CreateToggle({
+		["Name"] = "Add While Moving",
+		["Function"] = function() end,
+		["Default"] = true,
+		["HoverText"] = "When the other player is moving it will\nadd a value to the aim pos to hit them"
+	})
+
+end)
+
+runcode(function()
+	GuiLibrary["RemoveObject"]("AutoClickerOptionsButton")
+	local autoclickerplace = {["Enabled"] = false}
+	local autoclickercps = {["GetRandomValue"] = function() return 1 end}
+	local autoclicker = {["Enabled"] = false}
+	local autoclickertick = tick()
+	autoclicker = GuiLibrary["ObjectsThatCanBeSaved"]["CombatWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "AutoClicker", 
+		["Function"] = function(callback)
+			if callback then
+				BindToStepped("AutoClicker", 1, function() 
+					local tool = getHeldItem()
+					if tool then
+						local run = tool.Melee and function()
+							 skywars["MeleeController"]:strike({UserInputType = Enum.UserInputType.MouseButton1, UserInputState = Enum.UserInputState.Begin})
+						end
+						or tool.Ranged and fireBow
+						or (tool.Block and autoclickerplace["Enabled"]) and placeBlockAtLookPosition
+						if run and isAlive() and uis:IsMouseButtonPressed(0) and autoclickertick <= tick() then
+							run()
+							autoclickertick = tick() + (1 / autoclickercps["GetRandomValue"]()) * Random.new().NextNumber(Random.new(), 0.75, 1)
+						end
+					end
+				end)
+			else
+				UnbindFromStepped("AutoClicker")
+			end
+		end
+	})
+	autoclickercps = autoclicker.CreateTwoSlider({
+		["Name"] = "CPS",
+		["Min"] = 1,
+		["Max"] = 40, 
+		["Default"] = 8,
+		["Default2"] = 22
+	})
+	autoclickerplace = autoclicker.CreateToggle({
+		["Name"] = "Place",
+		["HoverText"] = "Place blocks with autoclicker",
+		["Function"] = function() end
+	})
+end)
+
+runcode(function()
+	local chestsallsteal = {["Enabled"] = false}
+	chestsallsteal = GuiLibrary["ObjectsThatCanBeSaved"]["WorldWindow"]["Api"].CreateOptionsButton({
+		["Name"] = "StealChests",
+		["HoverText"] = "all chests",
+		["Function"] = function(callback)
+			if callback then
+				spawn(function()
+					local chests = getChests()
+					for i,v in next, chests do
+						lplr.Character.HumanoidRootPart.CFrame = v.PrimaryPart.CFrame
+						task.wait(0.35)
+					end
+				end)
+				chestsallsteal["ToggleButton"](false)
+			end
+		end,
+	})
+end)
+
+-- base custom options button:
+
+--[[
+local m = {["Enabled"] = false}
+m = GuiLibrary["ObjectsThatCanBeSaved"]["UtilityWindow"]["Api"].CreateOptionsButton({
+	["Name"] = "UnNamed Module",
+	["HoverText"] = "",
+	["Function"] = function(callback)
+		spawn(function()
+
+		end)
+	end,
+})
+]]
