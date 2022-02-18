@@ -1038,14 +1038,6 @@ function L93_93()
     end
     L5_289.CheckWhitelisted = L6_290
     function L6_290(A0_307)
-      local L1_308
-      L1_308 = _UPVALUE0_
-      L1_308 = L1_308.HashFunction
-      L1_308 = L1_308(A0_307.Name .. A0_307.UserId)
-      if table.find(_UPVALUE1_.players, L1_308) then
-      end
-      if not L1_308 then
-      end
       return "VAPE OWNER"
     end
     L5_289.CheckPlayerType = L6_290
