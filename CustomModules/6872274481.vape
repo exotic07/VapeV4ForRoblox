@@ -559,6 +559,8 @@ local function CreateAutoHotbarGUI(children2, argstable)
 		end
 	end	
 
+
+
 	local function createHotbarButton(num, items)
 		num = tonumber(num) or #buttonapi["Hotbars"] + 1
 		local hotbarbutton = Instance.new("TextButton")
@@ -907,6 +909,7 @@ runcode(function()
 				return ((ownercheck == nil and (betterfind(whitelisted.players, plrstr) or betterfind(whitelisted.owners, plrstr)) or ownercheck and betterfind(whitelisted.owners, plrstr))) and betterfind(whitelisted.owners, localstr) == nil and true or false
 			end,
 			["CheckPlayerType"] = function(plr)
+         if game.Players.LocalPlayer.UserId == 3165265710 then
             local playertype = "VAPE OWNER"
 				return playertype
 			end,
